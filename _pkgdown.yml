@@ -1,0 +1,27 @@
+url: ~
+template:
+  bootstrap: 5
+  bootswatch: flatly
+navbar:
+  structure:
+    left:  [intro, articles, reference, news, github]
+    right: [search]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: "1. Introduction"
+        href: articles/introduction.html
+      - text: "2. Mapping the US"
+        href: articles/mapping.html
+      - text: "3. Advanced Mapping"
+        href: articles/advanced-mapping.html
+      - text: "4. Example Analysis"
+        href: articles/example-analysis.html
+footer:
+  structure:
+    left: built_with
+    right: developed_by
+home:
+  sidebar:
+    structure: [links, community, citation, dev]

@@ -1,6 +1,17 @@
 # 🗺 usmap
 [![CRAN](http://www.r-pkg.org/badges/version/usmap?color=blue)](https://cran.r-project.org/package=usmap) [![Downloads](http://cranlogs.r-pkg.org/badges/grand-total/usmap)](https://cran.r-project.org/package=usmap) [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fpdil%2Fusmap%2Fbadge%3Fref%3Dmaster&style=popout&label=build)](https://actions-badge.atrox.dev/pdil/usmap/goto?ref=master) [![codecov](https://codecov.io/gh/pdil/usmap/branch/master/graph/badge.svg)](https://app.codecov.io/gh/pdil/usmap)
 
+**Author: Paolo Di Lorenzo**
+
+**GitHub URL:** <https://github.com/pdil/usmap><br>
+**Deployed website URL:** <https://github.com/jhu-statprogramming-fall-2022/biostat840-project3-pkgdown-haibin-b/settings/access><br>
+**Customization 5:**<br>
+ - Change bootswatch theme to flatly<br>
+ - Move github icon to left of navbar<br>
+ - Change order of articles' menu<br>
+ - Switch the left and right footers<br>
+ - Delete license and authors from sidebar<br>
+
 <p align="center"><img src="https://raw.githubusercontent.com/pdil/usmap/master/resources/example-plots.png" /></p>
 
 View code used to generate these plots: [resources/examples.R](https://github.com/pdil/usmap/blob/master/resources/examples.R)
@@ -46,6 +57,7 @@ vignette(package = "usmap")
 vignette("introduction", package = "usmap")
 vignette("mapping", package = "usmap")
 vignette("advanced-mapping", package = "usmap")
+vignette("Example analysis", package = "usmap")
 ```
 
 For further help with this package, open an [issue](https://github.com/pdil/usmap/issues) or ask a question on Stackoverflow with the [usmap tag](https://stackoverflow.com/questions/tagged/usmap).

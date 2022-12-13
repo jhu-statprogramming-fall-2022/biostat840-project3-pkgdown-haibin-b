@@ -82,6 +82,7 @@ Here is an example using the provided `earthquakes` data set:
 ```{r, fig.align='center', fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
 library(usmap)
 library(ggplot2)
+library(rgdal)
 
 eq_transformed <- usmap_transform(earthquakes)
 

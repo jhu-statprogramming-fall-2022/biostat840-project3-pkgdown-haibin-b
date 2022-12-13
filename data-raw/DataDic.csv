@@ -1,0 +1,16 @@
+﻿Variables,Description
+Fuelheat,Gas as house heating fuel
+Housingvalue,Value of house (dollars)
+Kitchen,Kitchen facilities for all housing units
+Mortgage,Housing units with a mortgage (units)
+Mortgagecost,Mortgage/Aggregate monthly costs
+Mortgageval,Housing units with a mortgage (dollars)
+Occupy,Occupied house
+Occupyown,House occupied by owner
+Phone,Telephone service available
+Plumbing,Complete plumbing facilities
+Rentgross,Median rent gross (dollars)
+Rentprcinc,Median rent gross as a percentage of household income
+Rooms,Median number of rooms
+Units,Units in structure
+Unitsownpop,Units occupied by owner

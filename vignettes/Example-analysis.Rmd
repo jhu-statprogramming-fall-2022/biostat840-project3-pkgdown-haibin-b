@@ -1,0 +1,280 @@
+---
+title: "4. Example analysis"
+author: "Haibin Bai"
+date: "2022-12-13"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{4. Example analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+library(kableExtra)
+library(FactoMineR)
+library(factoextra)
+library(caret)
+library(corrplot)
+library(psych)
+library(usmap)
+library(ggplot2)
+library(tidyselect)
+```
+
+### Objective
+
+This study aim to develop housing-related composite score and visualize the score in the US map. 
+
+### Data information
+
+This study used Geo Social Analytic Platform (GSAP) data, which was developed by Johns Hopkins Center for Population Health Information Technology.
+
+GSAP: CPHIT is developing a large Geo Social Analytic Platform (GSAP) database of publicly available data at the census tract level.This database will link American Community Survey (ACS), ArcGIS data (as available), road systems, and other geographic level data to design a database that can be utilized to understand non-medical factors associated with specific conditions, utilization, cost, etc. (Source: <https://www.jhsph.edu/research/centers-and-institutes/johns-hopkins-center-for-population-health-information-technology/research/current-projects.html>) 
+
+### Study method
+
+This study used county-level GSAP data in 2018, which includes 3,220 counties. We applied principal component analysis (PCA) the housing related variables into several domains and then develop composite score for each domains. Data dictionary shows below:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+data_dic <- read.csv("~/Desktop/Project3/usmap/data-raw/DataDic.csv")
+knitr::kable(data_dic) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(c(0), bold = T, background = "#CCCCCC")
+```
+
+### Results
+
+```{r message=FALSE, warning=FALSE}
+housing <- read.csv('~/Desktop/Project3/usmap/data-raw/housing.csv')
+```
+
+```{r warning=FALSE}
+# convert character to numeric
+housing <- housing %>% 
+  mutate_at(vars(-("geoid")), as.numeric)
+```
+
+```{r include=FALSE}
+# detect and delete missing value
+sum(is.na(housing))
+sum(is.null(housing))
+dim(housing)
+housing_clean <- na.omit(housing)
+sum(is.na(housing_clean))
+sum(is.null(housing_clean))
+dim(housing_clean)
+```
+
+```{r}
+# feature scale
+preproc <- preProcess(housing_clean, method=c("range"))
+housing_norm <- predict(preproc, housing_clean)
+summary(housing_norm)
+```
+
+```{r}
+# Gather everything EXCEPT religion to tidy data
+housing_norm %>%
+  pivot_longer(-geoid, names_to = "house_char", values_to = "value") %>%
+  ggplot(aes(x = reorder(house_char, value), y = value, fill = house_char)) +
+  geom_boxplot() + 
+  coord_flip() +
+  labs(title = "Distribution of housing variables",
+       subtitle = "Distributions are vary",
+       x = "Housing variables",
+       y = "Value",
+       caption = "Haibin Bai",
+       fill = "Housing variables")
+```
+
+#### Developing potential group using PCA 
+
+```{r}
+housing_norm <- housing_norm %>% subset(select = -geoid)
+```
+
+```{r}
+corr_plot <- function(x, y) {
+  # correlation plot
+  corr_matrix <- cor(x)
+  corrplot(corr_matrix, method="pie", type = "upper")
+  
+  res.pca <- PCA(x, ncp = y, graph = FALSE)
+  eig.val <- data.frame(get_eigenvalue(res.pca))
+
+  print(fviz_eig(res.pca, addlabels = TRUE, ncp = y))
+  
+  var <- get_pca_var(res.pca)
+  
+  # PCA plotting (Correlation circle)
+  print(fviz_pca_var(res.pca, col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")))
+
+  corrplot(var$cos2, is.corr=FALSE)
+}
+```
+
+```{r}
+corr_plot(housing_norm, 15)
+```
+
+##### Financial group
+
+```{r}
+financial <- housing_norm %>% select(housingvalue, mortgage, mortgagecost, mortgageval, rentgross)
+corr_plot(financial, 6)
+```
+
+##### Owner status group
+
+```{r}
+owner_status <- housing_norm %>% select(occupy, occupyown, rentprcinc, units, unitsownpop, rooms)
+corr_plot(owner_status, 6)
+```
+
+##### House condition group
+
+```{r}
+house_condition <- housing_norm %>% select(fuelheat, kitchen, plumbing)
+corr_plot(house_condition, 3)
+```
+
+#### Mapping score (using this package)
+
+```{r}
+score_generating <- function(x) {
+fit1 <- psych::principal(x)
+corr_matrix1 <- cor(x, use = "pairwise.complete.obs")
+EFA_model1 <- fa(x, nfactors = 1)
+
+vec <- x
+vec$scores <- as.numeric(fit1$scores)
+vec$index <- as.numeric(fit1$scores * 20 + 100)
+
+geoid <- housing_clean %>% select(c("geoid"))
+x_final <- cbind(geoid,vec)
+
+x_final <- x_final %>%
+  mutate(fips = substr(geoid, 8, 12)) %>%
+  select(fips, index) %>%
+  rename (composite_score = index)
+
+return(x_final)
+}
+```
+
+##### Financial group
+```{r message=FALSE, warning=FALSE}
+financial_score <- score_generating(financial)
+# Mapping
+plot_usmap(regions = "counties",
+           data = financial_score,
+           values = "composite_score") +
+    theme(legend.position = "right") + 
+  scale_fill_continuous(high = "#132B43", low = "#56B1F7", name = "Composite Score", label = scales::comma) +
+  labs(title = "Distribution of financial composite score",
+       caption = "Haibin Bai")
+```
+
+##### Owner status group
+```{r message=FALSE, warning=FALSE}
+owner_status_score <- score_generating(owner_status)
+# Mapping
+plot_usmap(regions = "counties",
+           data = owner_status_score,
+           values = "composite_score") +
+    theme(legend.position = "right") + 
+  scale_fill_continuous(high = "#132B43", low = "#56B1F7", name = "Composite Score", label = scales::comma) +
+  labs(title = "Distribution of owner status composite score",
+       caption = "Haibin Bai")
+```
+
+##### House condition group
+```{r message=FALSE, warning=FALSE}
+house_condition_score <- score_generating(house_condition)
+# Mapping
+plot_usmap(regions = "counties",
+           data = house_condition_score,
+           values = "composite_score") +
+    theme(legend.position = "right") + 
+  scale_fill_continuous(high = "#132B43", low = "#56B1F7", name = "Composite Score", label = scales::comma) +
+  labs(title = "Distribution of housing condition composite score",
+       caption = "Haibin Bai")
+```
+
+##### Summarise
+
+```{r message=FALSE, warning=FALSE}
+housing_score <- financial_score %>% 
+  inner_join(owner_status_score, by = "fips") %>%
+  inner_join(house_condition_score, by = "fips") %>%
+  rename(financial = composite_score.x,
+         owner_status = composite_score.y,
+         house_condition = composite_score)
+
+ggplot(housing_score, aes(x=financial, y=owner_status)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +  
+  labs(title = "Relationship between scores of financial and owner",
+       subtitle = "Negative correlation",
+       x = "Financial score",
+       y = "Owner status score",
+       caption = "Haibin Bai") 
+
+ggplot(housing_score, aes(x=financial, y=house_condition)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +  
+  labs(title = "Relationship between scores of financial and housing condition",
+       subtitle = "Positive correlation",
+       x = "Financial score",
+       y = "House condition score",
+       caption = "Haibin Bai") 
+
+ggplot(housing_score, aes(x=owner_status, y=house_condition)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +  
+  labs(title = "Relationship between scores of owner and housing condition",
+       subtitle = "Slight negative correlation",
+       x = "Owner status score",
+       y = "House condition score",
+       caption = "Haibin Bai") 
+```
+
+
+```{r message=FALSE, warning=FALSE}
+housing_score <- housing_score %>% 
+  pivot_longer(-fips, names_to = "housing_domain", values_to = "composite_score")
+
+ggplot(housing_score, aes(x = housing_domain,  y=composite_score, fill=housing_domain)) +
+    geom_violin() +
+  labs(title = "Distribution of three housing domain composite scores",
+       subtitle = "These scores have slightly different skewness",
+       y = "Composite score",
+       caption = "Haibin Bai",
+       fill = "Housing domains")
+
+ggplot(housing_score, aes(y=composite_score, fill=housing_domain)) +
+    geom_boxplot() +
+  labs(title = "Distribution of three housing domain composite scores",
+       subtitle = "These scores have slightly different skewness",
+       y = "Composite score",
+       caption = "Haibin Bai",
+       fill = "Housing domains") + 
+  facet_grid(cols = vars(housing_domain))
+```
+
+
+#### Summary
+The aim of this study is using PCA to generate factor-based composite score, which could use one score represents multiple variables. It is hard to say the performance of the composite score, which could be improved, but it could be distinguished by different counties.
+
+### List the use of functions from each of the packages
+
+ - dplyr: mutate_at, subset, select, mutate, rename, inner_join
+ - tidyr: pivot_longer
+ - ggplot2: geom_boxplot, geom_point, geom_smooth, geom_violin
+ - usmap: plot_usmap, scale_fill_continuous, lab
